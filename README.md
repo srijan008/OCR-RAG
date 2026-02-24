@@ -75,8 +75,7 @@ cd OcrToRag
 
 docker-compose up --build
 ```
-- **Frontend**: http://localhost
-- **Backend API**: http://localhost:8000
+- **Frontend & API**: http://localhost:8000
 - **Postgres**: localhost:5432
 
 ---
@@ -86,8 +85,7 @@ docker-compose up --build
 The fastest local way to run the project is using the root orchestrator:
 
 ```bash
-# 1. Install dependencies for all services
-npm install
+# 1. Install all dependencies (Root, Frontend, Backend)
 npm run install:all
 
 # 2. Configure environment
@@ -137,6 +135,7 @@ npm run dev
 
 ## 📂 Project Structure
 - `/backend`: FastAPI service, OCR logic, and RAG orchestrator.
-- `/frontend`: React application and API client.
-- `/storage`: Local folder for temporary uploads and generated PDFs.
-- `docker-compose.yml`: Multi-container setup (Apps + Postgres).
+- `/frontend`: React application source code.
+- `/storage`: Managed storage (mapped during Docker run).
+- `Dockerfile`: Unified multi-stage build.
+- `docker-compose.yml`: Simplified single-container orchestration.

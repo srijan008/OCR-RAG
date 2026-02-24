@@ -18,11 +18,11 @@ services:
       timeout: 5s
       retries: 5
 
-  backend:
+  app:
     build: 
-      context: ./backend
+      context: .
       dockerfile: Dockerfile
-    container_name: ocrtorag-backend
+    container_name: ocrtorag-app
     environment:
       - DATABASE_URL=postgresql+asyncpg://postgres:password@db:5432/ocrtorag
       - GEMINI_API_KEY=${GEMINI_API_KEY}
@@ -35,22 +35,10 @@ services:
     ports:
       - "8000:8000"
     volumes:
-      - ./backend/storage:/app/storage
+      - ./backend/storage:/app/backend/storage
     depends_on:
       db:
         condition: service_healthy
-
-  frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-      args:
-        - VITE_API_URL=http://localhost:8000
-    container_name: ocrtorag-frontend
-    ports:
-      - "80:80"
-    depends_on:
-      - backend
 
 volumes:
   postgres_data:
