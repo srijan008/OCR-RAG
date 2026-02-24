@@ -11,8 +11,20 @@ from app.config import get_settings
 
 settings = get_settings()
 
+import os
+import platform
+
 # Set Tesseract executable path
-pytesseract.pytesseract.tesseract_cmd = settings.tesseract_cmd
+# In Docker (Linux), we usually want just 'tesseract' (installed via apt)
+# On Windows, we might need the full path to tesseract.exe
+if platform.system() == "Windows":
+    pytesseract.pytesseract.tesseract_cmd = settings.tesseract_cmd
+else:
+    # If on Linux and the settings path looks like a Windows path, ignore it
+    if ":" in settings.tesseract_cmd or "\\" in settings.tesseract_cmd:
+        pytesseract.pytesseract.tesseract_cmd = "tesseract"
+    else:
+        pytesseract.pytesseract.tesseract_cmd = settings.tesseract_cmd
 
 
 @dataclass

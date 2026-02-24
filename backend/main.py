@@ -54,6 +54,11 @@ app.include_router(upload.router)
 app.include_router(documents.router)
 app.include_router(query.router)
 
+@app.get("/health", tags=["system"])
+async def health():
+    """Cloud Run / General Health Check."""
+    return {"status": "ok", "service": "OCR-to-RAG API", "version": "1.1.0"}
+
 # --- Serving Frontend ---
 # Mount static files (JS, CSS, etc.)
 # We assume 'dist' folder is at /app/frontend/dist in Docker
@@ -75,8 +80,4 @@ if frontend_path.exists():
 else:
     @app.get("/", tags=["system"])
     async def index():
-        return {"message": "API is running. Frontend build not found.", "frontend_expected_at": str(frontend_path)}
-
-@app.get("/health", tags=["system"])
-async def health():
-    return {"status": "ok", "service": "OCR-to-RAG API", "version": "1.1.0"}
+        return {"message": "API is online.", "frontend_status": "not_bundled"}

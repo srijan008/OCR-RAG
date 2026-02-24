@@ -24,16 +24,16 @@ services:
       dockerfile: Dockerfile
     container_name: ocrtorag-app
     environment:
-      - DATABASE_URL=postgresql+asyncpg://postgres:password@db:5432/ocrtorag
       - GEMINI_API_KEY=${GEMINI_API_KEY}
       - COHERE_API_KEY=${COHERE_API_KEY}
       - JWT_SECRET_KEY=${JWT_SECRET_KEY}
       - CHROMA_API_KEY=${CHROMA_API_KEY}
       - CHROMA_TENANT=${CHROMA_TENANT}
       - CHROMA_DATABASE=${CHROMA_DATABASE}
+      - DATABASE_URL=${DATABASE_URL}
       - TESSERACT_CMD=tesseract
     ports:
-      - "8000:8000"
+      - "8080:8080"
     volumes:
       - ./backend/storage:/app/backend/storage
     depends_on:
