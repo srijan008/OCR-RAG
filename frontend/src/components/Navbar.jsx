@@ -1,5 +1,6 @@
+import { useState } from 'react'
 import { NavLink, useNavigate } from 'react-router-dom'
-import { Upload, BookOpen, MessageSquare, Cpu, LogOut, User } from 'lucide-react'
+import { Upload, BookOpen, MessageSquare, Cpu, LogOut, User, Menu, X } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 
 const links = [
@@ -9,42 +10,82 @@ const links = [
 ]
 
 export default function Navbar() {
-  const { user, logout } = useAuth()
-  const navigate         = useNavigate()
+  const { user, logout }    = useAuth()
+  const navigate            = useNavigate()
+  const [isOpen, setIsOpen] = useState(false)
 
   const handleLogout = () => {
     logout()
     navigate('/login')
   }
 
+  const closeMenu = () => setIsOpen(false)
+
   return (
     <nav className="navbar">
-      <div className="navbar-brand">
-        <div className="navbar-brand-icon"><Cpu size={16} color="white" /></div>
-        <span>OCR·RAG</span>
-      </div>
+      <div className="navbar-container">
+        <NavLink to="/library" className="navbar-brand" onClick={closeMenu}>
+          <div className="navbar-brand-icon"><Cpu size={16} color="white" /></div>
+          <span>OCR·RAG</span>
+        </NavLink>
 
-      <div className="navbar-links">
-        {links.map(({ to, icon, label }) => (
-          <NavLink
-            key={to}
-            to={to}
-            className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}
-          >
-            {icon}{label}
-          </NavLink>
-        ))}
-      </div>
-
-      <div className="navbar-user">
-        <div className="user-chip">
-          <User size={13} />
-          <span>{user?.name?.split(' ')[0] ?? 'You'}</span>
+        {/* Desktop Links */}
+        <div className="navbar-links desktop-only">
+          {links.map(({ to, icon, label }) => (
+            <NavLink
+              key={to}
+              to={to}
+              className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}
+            >
+              {icon}{label}
+            </NavLink>
+          ))}
         </div>
-        <button className="logout-btn" onClick={handleLogout} title="Sign out">
-          <LogOut size={15} />
-        </button>
+
+        <div className="navbar-right">
+          <div className="navbar-user desktop-only">
+            <div className="user-chip">
+              <User size={13} />
+              <span>{user?.name?.split(' ')[0] ?? 'You'}</span>
+            </div>
+            <button className="logout-btn" onClick={handleLogout} title="Sign out">
+              <LogOut size={15} />
+            </button>
+          </div>
+
+          {/* Mobile Toggle */}
+          <button className="mobile-toggle" onClick={() => setIsOpen(!isOpen)}>
+            {isOpen ? <X size={24} /> : <Menu size={24} />}
+          </button>
+        </div>
       </div>
+
+      {/* Mobile Menu Overlay */}
+      {isOpen && (
+        <div className="mobile-menu">
+          <div className="mobile-menu-links">
+            {links.map(({ to, icon, label }) => (
+              <NavLink
+                key={to}
+                to={to}
+                className={({ isActive }) => `mobile-nav-link${isActive ? ' active' : ''}`}
+                onClick={closeMenu}
+              >
+                {icon}{label}
+              </NavLink>
+            ))}
+            <div className="mobile-user-row">
+              <div className="user-chip">
+                <User size={13} />
+                <span>{user?.name ?? 'Account'}</span>
+              </div>
+              <button className="btn btn-danger" onClick={() => { handleLogout(); closeMenu(); }}>
+                <LogOut size={15} /> Sign Out
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </nav>
   )
 }

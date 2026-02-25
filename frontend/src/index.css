@@ -88,17 +88,23 @@ body {
 
 /* ── Navbar ───────────────────────────────────────────────────────────────── */
 .navbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 24px;
   height: 68px;
   background: rgba(13, 18, 32, 0.85);
   backdrop-filter: blur(16px);
   border-bottom: 1px solid var(--border);
   position: sticky;
   top: 0;
-  z-index: 100;
+  z-index: 1000;
+}
+
+.navbar-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
 }
 
 .navbar-brand {
@@ -123,7 +129,13 @@ body {
   box-shadow: 0 0 16px var(--accent-glow);
 }
 
-.navbar-nav {
+.navbar-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.navbar-links {
   display: flex;
   gap: 4px;
 }
@@ -149,6 +161,111 @@ body {
 .nav-link.active {
   color: var(--accent-primary);
   background: rgba(99, 102, 241, 0.15);
+}
+
+.navbar-user {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-left: 12px;
+  border-left: 1px solid var(--border);
+}
+
+.user-chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: rgba(99, 102, 241, 0.1);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  font-size: 0.8rem;
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+
+.logout-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 6px;
+  transition: all 0.2s;
+}
+
+.logout-btn:hover {
+  color: var(--accent-danger);
+  background: rgba(239, 68, 68, 0.1);
+}
+
+.mobile-toggle {
+  display: none;
+  background: transparent;
+  border: none;
+  color: var(--text-primary);
+  cursor: pointer;
+  padding: 4px;
+}
+
+/* ── Mobile Menu ────────────────────────────────────────────────────────── */
+.mobile-menu {
+  position: fixed;
+  top: 68px;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: var(--bg-surface);
+  z-index: 999;
+  padding: 24px;
+  animation: slideDown 0.3s ease;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.mobile-menu-links {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.mobile-nav-link {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  border-radius: var(--radius-md);
+  color: var(--text-secondary);
+  text-decoration: none;
+  font-size: 1.1rem;
+  font-weight: 500;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+}
+
+.mobile-nav-link.active {
+  color: var(--accent-primary);
+  border-color: var(--accent-primary);
+  background: rgba(99, 102, 241, 0.05);
+}
+
+.mobile-user-row {
+  margin-top: 24px;
+  padding-top: 24px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
 }
 
 /* ── Cards ────────────────────────────────────────────────────────────────── */
@@ -299,6 +416,7 @@ body {
   font-weight: 800;
   background: linear-gradient(135deg, var(--text-primary) 30%, var(--accent-secondary));
   -webkit-background-clip: text;
+  background-clip: text;
   -webkit-text-fill-color: transparent;
   line-height: 1.2;
   margin-bottom: 12px;
@@ -773,23 +891,6 @@ body {
 }
 
 /* ── Responsive ──────────────────────────────────────────────────────────── */
-@media (max-width: 640px) {
-  .upload-hero h1 {
-    font-size: 2rem;
-  }
-
-  .docs-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .msg-bubble {
-    max-width: 92%;
-  }
-
-  .page-content {
-    padding: 20px 16px;
-  }
-}
 
 /* ── Auth Pages ───────────────────────────────────────────────────────────── */
 .auth-page {
@@ -827,6 +928,7 @@ body {
   font-size: 1.5rem;
   background: linear-gradient(135deg, var(--text-primary), var(--accent-primary));
   -webkit-background-clip: text;
+  background-clip: text;
   -webkit-text-fill-color: transparent;
 }
 
@@ -944,53 +1046,110 @@ body {
   text-decoration: underline;
 }
 
-/* ── Navbar updates (user chip + logout) ─────────────────────────────────── */
-.navbar-links {
-  display: flex;
-  gap: 4px;
-}
-
-.navbar-user {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.user-chip {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 12px;
-  background: rgba(99, 102, 241, 0.1);
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  font-size: 0.8rem;
-  color: var(--text-secondary);
-}
-
-.logout-btn {
-  width: 34px;
-  height: 34px;
-  border-radius: var(--radius-sm);
-  background: none;
-  border: 1px solid var(--border);
-  color: var(--text-muted);
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.2s;
-}
-
-.logout-btn:hover {
-  background: rgba(239, 68, 68, 0.1);
-  border-color: rgba(239, 68, 68, 0.3);
-  color: var(--accent-danger);
-}
 
 /* ── Main content offset ─────────────────────────────────────────────────── */
 .main-content {
   padding: 24px;
   max-width: 1200px;
   margin: 0 auto;
+}
+
+/* ── Responsive ──────────────────────────────────────────────────────────── */
+@media (max-width: 1024px) {
+  .docs-grid {
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  }
+}
+
+@media (max-width: 768px) {
+  .desktop-only {
+    display: none !important;
+  }
+
+  .mobile-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .page-content {
+    padding: 24px 16px;
+  }
+
+  .upload-hero h1 {
+    font-size: 2.25rem;
+  }
+
+  .upload-hero p {
+    font-size: 1rem;
+  }
+
+  .dropzone {
+    padding: 32px 20px;
+  }
+
+  .chat-layout {
+    height: calc(100vh - 68px);
+    max-width: 100%;
+  }
+
+  .msg-bubble {
+    max-width: 88%;
+    font-size: 0.875rem;
+  }
+
+  .library-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+
+  .library-header h1 {
+    font-size: 1.5rem;
+  }
+
+  .library-header>div {
+    display: flex;
+    width: 100%;
+    gap: 10px;
+  }
+
+  .library-header .btn {
+    flex: 1;
+  }
+}
+
+@media (max-width: 480px) {
+  .upload-hero h1 {
+    font-size: 1.8rem;
+  }
+
+  .docs-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .doc-card-actions {
+    flex-wrap: wrap;
+  }
+
+  .doc-card-actions .btn {
+    width: 100%;
+  }
+
+  .chat-header h1 {
+    font-size: 1.25rem;
+  }
+
+  .chat-header p {
+    font-size: 0.75rem;
+  }
+
+  .chat-messages {
+    padding: 16px;
+    gap: 16px;
+  }
+
+  .chat-input-area {
+    padding: 12px 16px;
+  }
 }
