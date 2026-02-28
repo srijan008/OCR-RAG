@@ -166,6 +166,6 @@ async def document_events(
                 yield {"data": json.dumps(payload)}
                 break
                 
-            await asyncio.sleep(1)
+            await asyncio.sleep(0.1)
             
     return EventSourceResponse(event_generator())

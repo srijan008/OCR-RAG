@@ -34,6 +34,7 @@ class Settings(BaseSettings):
     child_chunk_overlap: int = 50
     top_k_results: int = 5
     cohere_model: str = "embed-english-v3.0"
+    gemini_model: str = "gemini-3-flash-preview"
     embed_dimension: int = 1024
 
     @property

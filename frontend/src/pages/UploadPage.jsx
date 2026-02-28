@@ -188,29 +188,29 @@ export default function UploadPage() {
                     <AlertCircle size={13} /> {item.error}
                   </div>
                 )}
+                
+                {/* Display intermediate OCR text in real-time as a preview */}
+                {item.ocrText && (
+                  <div style={{ marginTop: 12, padding: 12, background: 'var(--bg-card)', borderRadius: 6, width: '100%', fontSize: '0.85rem' }}>
+                    <div style={{color: 'var(--text-muted)', marginBottom: 6, fontWeight: 500}}>Live OCR Preview:</div>
+                    <pre style={{ 
+                      margin: 0, 
+                      whiteSpace: 'pre-wrap', 
+                      fontFamily: 'inherit', 
+                      color: 'var(--text-primary)',
+                      maxHeight: '120px',
+                      overflowY: 'auto'
+                    }}>
+                      {item.ocrText}
+                    </pre>
+                  </div>
+                )}
               </div>
 
               {(item.stage === 'done' || item.stage === 'error') && (
                 <button className="btn btn-ghost" style={{padding:'6px'}} onClick={() => removeFile(item.id)}>
                   <X size={15} />
                 </button>
-              )}
-              
-              {/* Display intermediate OCR text in real-time as a preview */}
-              {item.ocrText && (
-                <div style={{ marginTop: 12, padding: 12, background: 'var(--bg-card)', borderRadius: 6, width: '100%', fontSize: '0.85rem' }}>
-                  <div style={{color: 'var(--text-muted)', marginBottom: 6, fontWeight: 500}}>Live OCR Preview:</div>
-                  <pre style={{ 
-                    margin: 0, 
-                    whiteSpace: 'pre-wrap', 
-                    fontFamily: 'inherit', 
-                    color: 'var(--text-primary)',
-                    maxHeight: '120px',
-                    overflowY: 'auto'
-                  }}>
-                    {item.ocrText}
-                  </pre>
-                </div>
               )}
             </div>
           ))}

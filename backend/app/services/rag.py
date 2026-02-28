@@ -16,12 +16,11 @@ from app.models import Document
 settings = get_settings()
 
 genai.configure(api_key=settings.gemini_api_key)
-GEMINI_MODEL = "gemini-3-flash-preview"
 
 
 def get_gemini_model():
     return genai.GenerativeModel(
-        model_name=GEMINI_MODEL,
+        model_name=settings.gemini_model,
         generation_config=genai.GenerationConfig(
             temperature=0.2,
             max_output_tokens=2048,
@@ -84,7 +83,7 @@ async def query_rag(
         return {
             "answer": "No relevant documents found. Please upload some documents first.",
             "sources": [],
-            "model": GEMINI_MODEL,
+            "model": settings.gemini_model,
         }
 
     # 3. Retrieve broader context via Parent Chunks

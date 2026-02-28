@@ -74,12 +74,24 @@ def search_chunks(
     if count == 0:
         return []
 
-    where = {"chunk_type": {"$eq": "child"}}
+    where = None
     
     if document_ids and len(document_ids) == 1:
-        where["document_id"] = {"$eq": document_ids[0]}
+        where = {
+            "$and": [
+                {"chunk_type": {"$eq": "child"}},
+                {"document_id": {"$eq": document_ids[0]}}
+            ]
+        }
     elif document_ids and len(document_ids) > 1:
-        where["document_id"] = {"$in": document_ids}
+        where = {
+            "$and": [
+                {"chunk_type": {"$eq": "child"}},
+                {"document_id": {"$in": document_ids}}
+            ]
+        }
+    else:
+        where = {"chunk_type": {"$eq": "child"}}
 
     kwargs = {
         "query_embeddings": [query_embedding],

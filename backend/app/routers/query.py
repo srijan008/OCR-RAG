@@ -67,7 +67,7 @@ async def query_documents(
             chunk_text=chunk["text"],
             chunk_index=chunk["chunk_index"],
             page_number=chunk["page_number"],
-            similarity_score=round(chunk["similarity"], 4),
+            similarity_score=round(chunk.get("similarity", 0.0), 4),
         )
         for chunk in rag_result["sources"]
     ]
