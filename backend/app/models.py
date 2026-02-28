@@ -47,6 +47,8 @@ class Document(Base):
     page_count: Mapped[int] = mapped_column(Integer, default=0)
     chunk_count: Mapped[int] = mapped_column(Integer, default=0)
     ocr_confidence_avg: Mapped[float] = mapped_column(Float, default=0.0)
+    ocr_text: Mapped[str] = mapped_column(Text, nullable=True)
+    processing_step: Mapped[str] = mapped_column(String(50), nullable=True)
     status: Mapped[DocumentStatus] = mapped_column(
         SAEnum(DocumentStatus), default=DocumentStatus.PENDING
     )

@@ -1,10 +1,11 @@
 import axios from 'axios'
 
-const API_BASE = import.meta.env.VITE_API_URL
+export const API_BASE = import.meta.env.VITE_API_URL
 
 const client = axios.create({
     baseURL: API_BASE,
     timeout: 120000,
+    withCredentials: true,
 })
 
 // Attach JWT token to every request automatically
@@ -20,6 +21,7 @@ client.interceptors.response.use(
     (err) => {
         const isLoginReq = err.config?.url?.includes('/auth/login')
         if (err.response?.status === 401 && !isLoginReq) {
+            document.cookie = "token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;"
             localStorage.removeItem('token')
             localStorage.removeItem('user')
             window.location.href = '/login'
@@ -30,10 +32,16 @@ client.interceptors.response.use(
 
 // ── Auth ───────────────────────────────────────────────────────────────────
 export const signup = (name, email, password) =>
-    client.post('/auth/signup', { name, email, password }).then(r => r.data)
+    client.post('/auth/signup', { name, email, password }).then(r => {
+        document.cookie = `token=${r.data.access_token}; path=/; max-age=604800; SameSite=Lax`
+        return r.data
+    })
 
 export const login = (email, password) =>
-    client.post('/auth/login', { email, password }).then(r => r.data)
+    client.post('/auth/login', { email, password }).then(r => {
+        document.cookie = `token=${r.data.access_token}; path=/; max-age=604800; SameSite=Lax`
+        return r.data
+    })
 
 export const getMe = () =>
     client.get('/auth/me').then(r => r.data)

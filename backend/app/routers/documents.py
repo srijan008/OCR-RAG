@@ -1,12 +1,15 @@
 """Documents router: list, detail, download — scoped to the authenticated user."""
 from pathlib import Path
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import FileResponse
+from sse_starlette.sse import EventSourceResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
+import asyncio
+import json
 
-from app.database import get_db
-from app.models import Document, User
+from app.database import get_db, AsyncSessionLocal
+from app.models import Document, User, DocumentStatus
 from app.schemas import DocumentResponse, DocumentListResponse
 from app.dependencies import get_current_user
 from app.services.chroma_store import delete_document_chunks
@@ -98,3 +101,71 @@ async def download_pdf(
         media_type="application/pdf",
         filename=f"{Path(doc.original_filename).stem}_searchable.pdf",
     )
+
+
+@router.get("/{document_id}/events")
+async def document_events(
+    request: Request,
+    document_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Server-Sent Events endpoint to stream document processing progress."""
+    
+    # Verify ownership first
+    result = await db.execute(
+        select(Document).where(Document.id == document_id, Document.user_id == current_user.id)
+    )
+    doc = result.scalar_one_or_none()
+    if not doc:
+        raise HTTPException(status_code=404, detail="Document not found.")
+
+    async def event_generator():
+        last_step = None
+        last_text_len = 0
+        
+        while True:
+            if await request.is_disconnected():
+                break
+
+            async with AsyncSessionLocal() as session:
+                result = await session.execute(
+                    select(Document).where(Document.id == document_id)
+                )
+                doc = result.scalar_one_or_none()
+                
+                if not doc:
+                    break
+                    
+                current_step = doc.processing_step
+                current_text = doc.ocr_text or ""
+                current_text_len = len(current_text)
+                
+                status_val = doc.status.value if doc.status else "processing"
+                error_msg = doc.error_message
+                is_terminal = doc.status in (DocumentStatus.COMPLETED, DocumentStatus.FAILED)
+
+            if current_step != last_step or current_text_len > last_text_len:
+                payload = {
+                    "step": current_step,
+                    "ocr_text": current_text,
+                    "status": status_val,
+                    "error": error_msg
+                }
+                yield {"data": json.dumps(payload)}
+                last_step = current_step
+                last_text_len = current_text_len
+
+            if is_terminal:
+                payload = {
+                    "step": current_step,
+                    "ocr_text": current_text,
+                    "status": status_val,
+                    "error": error_msg
+                }
+                yield {"data": json.dumps(payload)}
+                break
+                
+            await asyncio.sleep(1)
+            
+    return EventSourceResponse(event_generator())

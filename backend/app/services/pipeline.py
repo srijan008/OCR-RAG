@@ -34,9 +34,12 @@ async def run_pipeline(
 
     try:
         doc.status = DocumentStatus.PROCESSING
+        doc.processing_step = "Uploading"
         await db.commit()
 
         # ── Step 1: Load pages as PIL Images ──────────────────────────────
+        doc.processing_step = "Preprocessing"
+        await db.commit()
         pages_pil: list[Image.Image] = []
         fallback_texts: list[str] = []
 
@@ -84,6 +87,10 @@ async def run_pipeline(
                 pages_pil.append(img.copy())
 
         # ── Step 2: Preprocess + OCR each page ────────────────────────────
+        doc.processing_step = "OCR"
+        doc.ocr_text = ""
+        await db.commit()
+
         page_ocr_results: list[PageOCRResult] = []
         original_pages: list[Image.Image] = []
         page_texts: list[tuple[int, str]] = []
@@ -102,8 +109,15 @@ async def run_pipeline(
             )
             page_ocr_results.append(ocr_result)
             page_texts.append((i, ocr_result.text))
+            
+            # Append to ocr_text for real-time SSE streaming
+            doc.ocr_text += ocr_result.text + "\n\n"
+            await db.commit()
 
         # ── Step 3: Generate searchable PDF ───────────────────────────────
+        doc.processing_step = "PDF Generation"
+        await db.commit()
+        
         stem = Path(file_path).stem
         pdf_output_path = get_pdf_path(stem)
 
@@ -118,23 +132,47 @@ async def run_pipeline(
         # ── Step 4: Chunk text ────────────────────────────────────────────
         chunks = chunk_pages(page_texts)
 
-        # ── Step 5: Embed chunks via Cohere ───────────────────────────────
-        texts_to_embed = [c.text for c in chunks]
-        embeddings: list[list[float]] = []
+        # ── Step 5: Embed child chunks via Gemini ─────────────────────────
+        doc.processing_step = "Embedding"
+        await db.commit()
+        
+        child_chunks = [c for c in chunks if c.chunk_type == "child"]
+        parent_chunks = [c for c in chunks if c.chunk_type == "parent"]
+        
+        texts_to_embed = [c.text for c in child_chunks]
+        child_embeddings: list[list[float]] = []
         if texts_to_embed:
-            embeddings = await asyncio.get_event_loop().run_in_executor(
+            child_embeddings = await asyncio.get_event_loop().run_in_executor(
                 None, embed_documents, texts_to_embed
             )
 
         # ── Step 6: Upsert into ChromaDB ──────────────────────────────────
-        chunk_dicts = [
-            {"text": c.text, "chunk_index": c.chunk_index, "page_number": c.page_number}
-            for c in chunks
-        ]
+        # We index child chunks with real embeddings.
+        # We index parent chunks with dummy embeddings so we can retrieve them by parent_id.
+        from app.config import get_settings
+        dim = get_settings().embed_dimension
+        
+        chunk_dicts = []
+        all_embeddings = []
+        
+        for c, emb in zip(child_chunks, child_embeddings):
+            chunk_dicts.append({
+                "text": c.text, "chunk_index": c.chunk_index, "page_number": c.page_number,
+                "chunk_type": c.chunk_type, "parent_id": c.parent_id
+            })
+            all_embeddings.append(emb)
+            
+        for c in parent_chunks:
+            chunk_dicts.append({
+                "text": c.text, "chunk_index": c.chunk_index, "page_number": c.page_number,
+                "chunk_type": c.chunk_type, "parent_id": c.parent_id
+            })
+            all_embeddings.append([0.0] * dim) # Dummy embedding
+
         upsert_chunks(
             document_id=document_id,
             chunks=chunk_dicts,
-            embeddings=embeddings,
+            embeddings=all_embeddings,
         )
 
         # ── Step 7: Update document record ────────────────────────────────
@@ -147,10 +185,12 @@ async def run_pipeline(
             else 0.0
         )
         doc.status = DocumentStatus.COMPLETED
+        doc.processing_step = "Done"
         await db.commit()
 
     except Exception as exc:
         doc.status = DocumentStatus.FAILED
+        doc.processing_step = "error"
         doc.error_message = str(exc)
         await db.commit()
         raise

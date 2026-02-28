@@ -53,6 +53,8 @@ def upsert_chunks(
             "document_id": document_id,
             "chunk_index": c["chunk_index"],
             "page_number": c["page_number"],
+            "chunk_type": c["chunk_type"],
+            "parent_id": c["parent_id"],
         }
         for c in chunks
     ]
@@ -72,11 +74,12 @@ def search_chunks(
     if count == 0:
         return []
 
-    where = None
+    where = {"chunk_type": {"$eq": "child"}}
+    
     if document_ids and len(document_ids) == 1:
-        where = {"document_id": {"$eq": document_ids[0]}}
+        where["document_id"] = {"$eq": document_ids[0]}
     elif document_ids and len(document_ids) > 1:
-        where = {"document_id": {"$in": document_ids}}
+        where["document_id"] = {"$in": document_ids}
 
     kwargs = {
         "query_embeddings": [query_embedding],
@@ -98,7 +101,38 @@ def search_chunks(
             "document_id": meta["document_id"],
             "chunk_index": meta["chunk_index"],
             "page_number": meta["page_number"],
+            "parent_id":   meta.get("parent_id"),
             "similarity":  round(similarity, 4),
+        })
+    return output
+
+def get_parent_chunks(parent_ids: list[str]) -> list[dict]:
+    """Retrieve full text for a list of parent_ids from ChromaDB."""
+    if not parent_ids:
+        return []
+        
+    collection = get_collection()
+    results = collection.get(
+        where={
+            "$and": [
+                {"chunk_type": {"$eq": "parent"}},
+                {"parent_id": {"$in": parent_ids}}
+            ]
+        },
+        include=["documents", "metadatas"]
+    )
+    
+    output = []
+    if not results or not results["documents"]:
+        return output
+        
+    for i, doc_text in enumerate(results["documents"]):
+        meta = results["metadatas"][i]
+        output.append({
+            "text": doc_text,
+            "document_id": meta["document_id"],
+            "chunk_index": meta["chunk_index"],
+            "page_number": meta["page_number"],
         })
     return output
 

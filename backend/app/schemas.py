@@ -46,6 +46,8 @@ class DocumentResponse(BaseModel):
     page_count: int
     chunk_count: int
     ocr_confidence_avg: float
+    ocr_text: Optional[str] = None
+    processing_step: Optional[str] = None
     status: DocumentStatus
     error_message: Optional[str] = None
     created_at: datetime

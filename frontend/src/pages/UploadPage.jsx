@@ -1,7 +1,7 @@
 import { useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Upload, FileText, Image, X, CheckCircle, AlertCircle, Sparkles } from 'lucide-react'
-import { uploadDocument, fetchDocument } from '../api/client'
+import { uploadDocument, API_BASE } from '../api/client'
 
 function formatBytes(bytes) {
   if (bytes < 1024)       return `${bytes} B`
@@ -31,6 +31,7 @@ export default function UploadPage() {
       stageIdx: 0,
       error: null,
       docId: null,
+      ocrText: '',
     }))
     setFiles(prev => [...prev, ...list])
     list.forEach(item => startUpload(item))
@@ -47,19 +48,16 @@ export default function UploadPage() {
         setFiles(prev => prev.map(f => f.id === item.id ? { ...f, progress: pct } : f))
       })
 
-      // Jump to processing stages with visual animation
+      // Proceed to processing and connect to SSE
       setFiles(prev => prev.map(f => f.id === item.id
         ? { ...f, stage: 'processing', stageIdx: 1, docId: data.document?.id, progress: 100 }
         : f))
 
-      // Simulate processing stage progression
-      for (let i = 2; i < STAGES.length - 1; i++) {
-        await new Promise(r => setTimeout(r, 1300))
-        setFiles(prev => prev.map(f => f.id === item.id ? { ...f, stageIdx: i } : f))
+      if (data.document?.id) {
+          await listenToEvents(item.id, data.document.id)
+      } else {
+          setFiles(prev => prev.map(f => f.id === item.id ? { ...f, stage: 'done', stageIdx: 5 } : f))
       }
-
-      // Poll DB until completed
-      await pollStatus(item.id, data.document?.id)
     } catch (err) {
       const msg = err.response?.data?.detail || err.message || 'Upload failed'
       setFiles(prev => prev.map(f => f.id === item.id
@@ -68,24 +66,46 @@ export default function UploadPage() {
     }
   }
 
-  const pollStatus = async (itemId, docId) => {
-    if (!docId) {
-      setFiles(prev => prev.map(f => f.id === itemId ? { ...f, stage: 'done', stageIdx: 5 } : f))
-      return
-    }
-    for (let i = 0; i < 60; i++) {
-      await new Promise(r => setTimeout(r, 3000))
+  const listenToEvents = async (itemId, docId) => {
+    // We now use native EventSource with credentials since the token is in cookies
+    const eventSource = new EventSource(`${API_BASE}/documents/${docId}/events`, {
+      withCredentials: true
+    })
+
+    eventSource.onmessage = (event) => {
       try {
-        const doc = await fetchDocument(docId)
-        if (doc.status === 'completed') {
-          setFiles(prev => prev.map(f => f.id === itemId ? { ...f, stage: 'done', stageIdx: 5 } : f))
-          return
+        const data = JSON.parse(event.data)
+        const stepIdx = STAGES.indexOf(data.step)
+        
+        setFiles(prev => prev.map(f => {
+          if (f.id !== itemId) return f
+          // Keep current status if processing, otherwise jump to done/error
+          const newStage = data.status === 'completed' ? 'done' : data.status === 'failed' ? 'error' : 'processing'
+          
+          return {
+            ...f, 
+            stage: newStage,
+            stageIdx: stepIdx >= 0 ? stepIdx : f.stageIdx,
+            ocrText: data.ocr_text || f.ocrText,
+            error: data.error || f.error
+          }
+        }))
+
+        if (data.status === 'completed' || data.status === 'failed') {
+          eventSource.close()
         }
-        if (doc.status === 'failed') {
-          setFiles(prev => prev.map(f => f.id === itemId ? { ...f, stage: 'error', error: doc.error_message || 'Processing failed' } : f))
-          return
+      } catch (e) { /* ignore parse error */ }
+    }
+
+    eventSource.onerror = (error) => {
+      eventSource.close()
+      // Only set error if we aren't already done
+      setFiles(prev => prev.map(f => {
+        if (f.id === itemId && f.stage !== 'done') {
+           return { ...f, stage: 'error', error: 'Event stream connection error.' }
         }
-      } catch (_) { /* keep polling */ }
+        return f
+      }))
     }
   }
 
@@ -174,6 +194,23 @@ export default function UploadPage() {
                 <button className="btn btn-ghost" style={{padding:'6px'}} onClick={() => removeFile(item.id)}>
                   <X size={15} />
                 </button>
+              )}
+              
+              {/* Display intermediate OCR text in real-time as a preview */}
+              {item.ocrText && (
+                <div style={{ marginTop: 12, padding: 12, background: 'var(--bg-card)', borderRadius: 6, width: '100%', fontSize: '0.85rem' }}>
+                  <div style={{color: 'var(--text-muted)', marginBottom: 6, fontWeight: 500}}>Live OCR Preview:</div>
+                  <pre style={{ 
+                    margin: 0, 
+                    whiteSpace: 'pre-wrap', 
+                    fontFamily: 'inherit', 
+                    color: 'var(--text-primary)',
+                    maxHeight: '120px',
+                    overflowY: 'auto'
+                  }}>
+                    {item.ocrText}
+                  </pre>
+                </div>
               )}
             </div>
           ))}

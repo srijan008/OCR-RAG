@@ -28,8 +28,10 @@ class Settings(BaseSettings):
     allowed_origins: str = "http://localhost:5173,http://localhost:3000"
 
     # RAG Settings
-    chunk_size: int = 500
-    chunk_overlap: int = 50
+    parent_chunk_size: int = 1500
+    parent_chunk_overlap: int = 0
+    child_chunk_size: int = 300
+    child_chunk_overlap: int = 50
     top_k_results: int = 5
     cohere_model: str = "embed-english-v3.0"
     embed_dimension: int = 1024
@@ -41,6 +43,7 @@ class Settings(BaseSettings):
     class Config:
         env_file = ".env"
         env_file_encoding = "utf-8"
+        extra = "ignore"
 
 
 @lru_cache()
